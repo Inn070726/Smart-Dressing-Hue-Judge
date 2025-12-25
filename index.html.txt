@@ -1,0 +1,47 @@
+<!doctype html>
+<title>Smart Dressing Hue Judge</title>
+<body style="text-align:center;font-family:Arial">
+<h2>上传敷料照片 → 自动判读感染/耐药</h2>
+<input type="file" id="imgFile" accept="image/*">
+<br><br>
+<canvas id="canvas" style="max-width:300px"></canvas>
+<br>
+R:<span id="r">-</span> G:<span id="g">-</span> B:<span id="b">-</span>
+<br>
+Hue = <span id="hue">-</span>° → <b id="result">-</b>
+
+<script>
+imgFile.onchange = e => {
+  const file = e.target.files[0];
+  const url = URL.createObjectURL(file);
+  const img = new Image();
+  img.src = url;
+  img.onload = () => {
+    const cvs = canvas, ctx = cvs.getContext('2d');
+    cvs.width = img.width; cvs.height = img.height;
+    ctx.drawImage(img,0,0);
+    // 取正中心 10×10 像素平均颜色
+    const data = ctx.getImageData(img.width/2-5, img.height/2-5, 10,10).data;
+    let R=0, G=0, B=0;
+    for(let i=0;i<data.length;i+=4){R+=data[i];G+=data[i+1];B+=data[i+2];}
+    R=Math.round(R/100); G=Math.round(G/100); B=Math.round(B/100);
+    r.textContent=R; g.textContent=G; b.textContent=B;
+    // RGB→Hue
+    const r1=R/255, g1=G/255, b1=B/255;
+    const max=Math.max(r1,g1,b1), min=Math.min(r1,g1,b1), d=max-min;
+    let H=0;
+    if(d===0) H=0;
+    else if(max===r1) H=(g1-b1)/d;
+    else if(max===g1) H=(b1-r1)/d+2;
+    else H=(r1-g1)/d+4;
+    H=Math.round(60*H);
+    if(H<0) H+=360;
+    hue.textContent=H;
+    // 判读
+    if(H>50) result.textContent='阴性（健康）', result.style.color='green';
+    else if(H>35) result.textContent='弱阳性（早期）', result.style.color='orange';
+    else result.textContent='强阳性（感染/耐药）', result.style.color='red';
+  };
+};
+</script>
+</body>
